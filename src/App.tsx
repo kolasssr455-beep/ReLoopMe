@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Types
 interface Message {
@@ -8,7 +8,6 @@ interface Message {
   avatar: string;
   timestamp: Date;
   color: string;
-  edited?: boolean;
 }
 
 interface Channel {
@@ -34,7 +33,6 @@ interface Member {
   status: 'online' | 'idle' | 'dnd' | 'offline';
   role: string;
   color: string;
-  activity?: string;
 }
 
 // Текущий пользователь
@@ -47,144 +45,24 @@ const currentUser: Member = {
   color: '#5865f2',
 };
 
-// Друзья (реальные люди, без ботов)
+// Друзья (без ботов)
 const friends: Member[] = [
-  { id: 'f1', name: 'Дима', avatar: '🧔', status: 'online', role: 'Админ', color: '#e74c3c', activity: 'Играет в CS2' },
+  { id: 'f1', name: 'Дима', avatar: '🧔', status: 'online', role: 'Админ', color: '#e74c3c' },
   { id: 'f2', name: 'Катя', avatar: '👩', status: 'online', role: 'Модератор', color: '#e91e63' },
-  { id: 'f3', name: 'Макс', avatar: '🧑', status: 'idle', role: 'Друг', color: '#2ecc71', activity: 'Слушает Spotify' },
-  { id: 'f4', name: 'Аня', avatar: '👧', status: 'dnd', role: 'Друг', color: '#f39c12', activity: 'Не беспокоить' },
+  { id: 'f3', name: 'Макс', avatar: '🧑', status: 'idle', role: 'Друг', color: '#2ecc71' },
+  { id: 'f4', name: 'Аня', avatar: '👧', status: 'dnd', role: 'Друг', color: '#f39c12' },
   { id: 'f5', name: 'Влад', avatar: '👨', status: 'online', role: 'Друг', color: '#9b59b6' },
-  { id: 'f6', name: 'Лера', avatar: '💁‍♀️', status: 'offline', role: 'Друг', color: '#1abc9c' },
-  { id: 'f7', name: 'Саша', avatar: '🧑‍🦱', status: 'offline', role: 'Друг', color: '#e67e22' },
 ];
 
-// Начальные серверы
+// Пустые серверы без каналов
 const initialServers: Server[] = [
   {
     id: 'server-1',
     name: 'LIpoMett',
     icon: '🔥',
     color: '#5865f2',
-    channels: [
-      {
-        id: 'ch-1',
-        name: 'общий',
-        type: 'text',
-        messages: [
-          { id: 'm1', content: 'Йоу, кто как? 🤙', author: 'Дима', avatar: '🧔', timestamp: new Date(Date.now() - 7200000), color: '#e74c3c' },
-          { id: 'm2', content: 'Привет! Нормально, работаю', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 6800000), color: '#e91e63' },
-          { id: 'm3', content: 'Кто сегодня в доту вечером?', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 5400000), color: '#2ecc71' },
-          { id: 'm4', content: 'Я за! Часов в 8 норм?', author: 'Влад', avatar: '👨', timestamp: new Date(Date.now() - 4800000), color: '#9b59b6' },
-          { id: 'm5', content: '+1, я тоже зайду', author: 'Дима', avatar: '🧔', timestamp: new Date(Date.now() - 4200000), color: '#e74c3c' },
-          { id: 'm6', content: 'Окей, тогда в 8 все в голосовой 👍', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 3600000), color: '#2ecc71' },
-          { id: 'm7', content: 'Аня, ты с нами?', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 3000000), color: '#e91e63' },
-          { id: 'm8', content: 'Не сегодня, занята 😔', author: 'Аня', avatar: '👧', timestamp: new Date(Date.now() - 2400000), color: '#f39c12' },
-          { id: 'm9', content: 'Ладно, в следующий раз!', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 1800000), color: '#2ecc71' },
-        ],
-      },
-      {
-        id: 'ch-2',
-        name: 'мемы-и-приколы',
-        type: 'text',
-        messages: [
-          { id: 'm10', content: 'Смотрите что нашёл 😂😂😂', author: 'Влад', avatar: '👨', timestamp: new Date(Date.now() - 10800000), color: '#9b59b6' },
-          { id: 'm11', content: 'ААААА я умираю 🤣🤣', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 10200000), color: '#e91e63' },
-          { id: 'm12', content: 'Скинь ещё!', author: 'Дима', avatar: '🧔', timestamp: new Date(Date.now() - 9600000), color: '#e74c3c' },
-        ],
-      },
-      {
-        id: 'ch-3',
-        name: 'музыка',
-        type: 'text',
-        messages: [
-          { id: 'm13', content: 'Послушайте новый альбом, огонь 🔥🔥🔥', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 14400000), color: '#2ecc71' },
-          { id: 'm14', content: 'Да, качает!', author: 'Влад', avatar: '👨', timestamp: new Date(Date.now() - 13800000), color: '#9b59b6' },
-        ],
-      },
-      {
-        id: 'ch-4',
-        name: 'важное',
-        type: 'text',
-        messages: [
-          { id: 'm15', content: '📢 Напоминаю: в субботу встречаемся в 15:00!', author: 'Дима', avatar: '🧔', timestamp: new Date(Date.now() - 86400000), color: '#e74c3c' },
-        ],
-      },
-      {
-        id: 'ch-5',
-        name: 'Игровая',
-        type: 'voice',
-        messages: [],
-      },
-      {
-        id: 'ch-6',
-        name: 'Общение',
-        type: 'voice',
-        messages: [],
-      },
-    ],
+    channels: [],
     members: [currentUser, ...friends],
-  },
-  {
-    id: 'server-2',
-    name: 'Геймеры',
-    icon: '🎮',
-    color: '#57f287',
-    channels: [
-      {
-        id: 'ch-7',
-        name: 'поиск-тиммейтов',
-        type: 'text',
-        messages: [
-          { id: 'm16', content: 'Кто в CS катку?', author: 'Дима', avatar: '🧔', timestamp: new Date(Date.now() - 1800000), color: '#e74c3c' },
-          { id: 'm17', content: 'Го!', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 1200000), color: '#2ecc71' },
-          { id: 'm18', content: 'Я тоже, заходите в лобби', author: 'Влад', avatar: '👨', timestamp: new Date(Date.now() - 600000), color: '#9b59b6' },
-        ],
-      },
-      {
-        id: 'ch-8',
-        name: 'скриншоты',
-        type: 'text',
-        messages: [
-          { id: 'm19', content: 'Какой клатч был! 🏆', author: 'Макс', avatar: '🧑', timestamp: new Date(Date.now() - 28800000), color: '#2ecc71' },
-        ],
-      },
-      {
-        id: 'ch-9',
-        name: 'Геймерская',
-        type: 'voice',
-        messages: [],
-      },
-    ],
-    members: [currentUser, friends[0], friends[2], friends[4]],
-  },
-  {
-    id: 'server-3',
-    name: 'Учёба',
-    icon: '📚',
-    color: '#fee75c',
-    channels: [
-      {
-        id: 'ch-10',
-        name: 'домашка',
-        type: 'text',
-        messages: [
-          { id: 'm20', content: 'Кто сделал задание по матану?', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 43200000), color: '#e91e63' },
-          { id: 'm21', content: 'Да, скину решение через час', author: 'Аня', avatar: '👧', timestamp: new Date(Date.now() - 42000000), color: '#f39c12' },
-          { id: 'm22', content: 'Спасибо!! 🙏', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 41000000), color: '#e91e63' },
-        ],
-      },
-      {
-        id: 'ch-11',
-        name: 'экзамены',
-        type: 'text',
-        messages: [
-          { id: 'm23', content: 'Расписание экзаменов выложили 😱', author: 'Аня', avatar: '👧', timestamp: new Date(Date.now() - 172800000), color: '#f39c12' },
-          { id: 'm24', content: 'Когда?', author: 'Катя', avatar: '👩', timestamp: new Date(Date.now() - 172000000), color: '#e91e63' },
-          { id: 'm25', content: 'Через 2 недели... надо готовиться', author: 'Аня', avatar: '👧', timestamp: new Date(Date.now() - 171000000), color: '#f39c12' },
-        ],
-      },
-    ],
-    members: [currentUser, friends[1], friends[3]],
   },
 ];
 
@@ -269,11 +147,13 @@ function ServerSidebar({ servers, activeServerId, onServerClick, onAddServer }: 
   );
 }
 
-function ChannelSidebar({ server, activeChannelId, onChannelClick }: {
+function ChannelSidebar({ server, activeChannelId, onChannelClick, onCreateChannel }: {
   server: Server;
   activeChannelId: string;
   onChannelClick: (id: string) => void;
+  onCreateChannel: (name: string, type: 'text' | 'voice') => void;
 }) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const textChannels = server.channels.filter(c => c.type === 'text');
   const voiceChannels = server.channels.filter(c => c.type === 'voice');
 
@@ -291,11 +171,21 @@ function ChannelSidebar({ server, activeChannelId, onChannelClick }: {
       <div className="flex-1 overflow-y-auto pt-4 px-2">
         {textChannels.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center px-1 mb-1">
-              <svg className="w-3 h-3 text-[#949ba4] mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-              <span className="text-[#949ba4] text-xs font-semibold uppercase tracking-wide">Текстовые каналы</span>
+            <div className="flex items-center justify-between px-1 mb-1">
+              <div className="flex items-center">
+                <svg className="w-3 h-3 text-[#949ba4] mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span className="text-[#949ba4] text-xs font-semibold uppercase tracking-wide">Текстовые каналы</span>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="text-[#949ba4] hover:text-[#dbdee1]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
             </div>
             {textChannels.map(channel => (
               <button
@@ -335,6 +225,19 @@ function ChannelSidebar({ server, activeChannelId, onChannelClick }: {
             ))}
           </div>
         )}
+
+        {server.channels.length === 0 && (
+          <div className="text-center py-8 px-4">
+            <div className="text-4xl mb-3">💬</div>
+            <p className="text-[#949ba4] text-sm mb-4">Пока нет каналов</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full px-4 py-2 bg-[#5865f2] text-white rounded-md text-sm font-medium hover:bg-[#4752c4] transition-colors"
+            >
+              Создать канал
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Панель пользователя */}
@@ -351,18 +254,122 @@ function ChannelSidebar({ server, activeChannelId, onChannelClick }: {
             <div className="text-[11px] text-[#949ba4] truncate">В сети</div>
           </div>
         </div>
-        <div className="flex gap-1">
-          <button className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#35373c] text-[#b5bac1]">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#35373c] text-[#b5bac1]">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+      </div>
+
+      {/* Модалка создания канала */}
+      {showCreateModal && (
+        <CreateChannelModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(name, type) => {
+            onCreateChannel(name, type);
+            setShowCreateModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateChannelModal({ onClose, onCreate }: {
+  onClose: () => void;
+  onCreate: (name: string, type: 'text' | 'voice') => void;
+}) {
+  const [name, setName] = useState('');
+  const [type, setType] = useState<'text' | 'voice'>('text');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      onCreate(name.trim().toLowerCase().replace(/\s+/g, '-'), type);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-[#313338] rounded-lg w-[440px]" onClick={e => e.stopPropagation()}>
+        <div className="p-6">
+          <h2 className="text-[22px] font-bold text-white mb-2">Создать канал</h2>
+          <p className="text-[#b5bac1] text-sm mb-6">в LIpoMett</p>
+
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-[#b5bac1] text-xs font-bold uppercase mb-2">
+                Тип канала
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 bg-[#1e1f22] rounded-md cursor-pointer hover:bg-[#2b2d31] transition-colors">
+                  <input
+                    type="radio"
+                    value="text"
+                    checked={type === 'text'}
+                    onChange={(e) => setType(e.target.value as 'text' | 'voice')}
+                    className="mr-3"
+                  />
+                  <span className="text-[#949ba4] mr-2">#</span>
+                  <div>
+                    <div className="text-[#dbdee1] text-sm font-medium">Текстовый</div>
+                    <div className="text-[#949ba4] text-xs">Отправляй сообщения, картинки и мемы</div>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 bg-[#1e1f22] rounded-md cursor-pointer hover:bg-[#2b2d31] transition-colors">
+                  <input
+                    type="radio"
+                    value="voice"
+                    checked={type === 'voice'}
+                    onChange={(e) => setType(e.target.value as 'text' | 'voice')}
+                    className="mr-3"
+                  />
+                  <svg className="w-5 h-5 text-[#949ba4] mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6.5 8H6a1 1 0 00-1 1v6a1 1 0 001 1h.5l3.5 3.5V4.5L6.5 8z" />
+                  </svg>
+                  <div>
+                    <div className="text-[#dbdee1] text-sm font-medium">Голосовой</div>
+                    <div className="text-[#949ba4] text-xs">Общайся голосом с друзьями</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-[#b5bac1] text-xs font-bold uppercase mb-2">
+                Название канала
+              </label>
+              <div className="flex items-center bg-[#1e1f22] rounded-md px-3">
+                {type === 'text' ? (
+                  <span className="text-[#949ba4] mr-2">#</span>
+                ) : (
+                  <svg className="w-5 h-5 text-[#949ba4] mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6.5 8H6a1 1 0 00-1 1v6a1 1 0 001 1h.5l3.5 3.5V4.5L6.5 8z" />
+                  </svg>
+                )}
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="новый-канал"
+                  className="flex-1 bg-transparent py-2.5 text-[#dbdee1] placeholder-[#6d6f78] outline-none text-sm"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-[#dbdee1] hover:underline text-sm font-medium"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={!name.trim()}
+                className="px-4 py-2 bg-[#5865f2] text-white rounded-md text-sm font-medium hover:bg-[#4752c4] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Создать канал
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -376,7 +383,6 @@ function ChatArea({ channel, server, onSendMessage }: {
 }) {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -397,24 +403,6 @@ function ChatArea({ channel, server, onSendMessage }: {
         <div className="flex items-center">
           <span className="text-[#949ba4] text-xl mr-2">#</span>
           <span className="text-white font-semibold">{channel.name}</span>
-        </div>
-        <div className="ml-4 pl-4 border-l border-[#3f4147] flex-1 hidden md:block">
-          <span className="text-[#949ba4] text-sm truncate">Общайся с друзьями в #{channel.name}</span>
-        </div>
-        <div className="flex items-center gap-3 text-[#b5bac1]">
-          <svg className="w-5 h-5 cursor-pointer hover:text-[#dbdee1] hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <svg className="w-5 h-5 cursor-pointer hover:text-[#dbdee1] hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-          </svg>
-          <div className="relative hidden lg:block">
-            <input
-              type="text"
-              placeholder="Поиск"
-              className="w-36 h-6 bg-[#1e1f22] rounded-md px-2 text-sm text-[#dbdee1] placeholder-[#949ba4] outline-none focus:w-56 transition-all"
-            />
-          </div>
         </div>
       </div>
 
@@ -469,33 +457,20 @@ function ChatArea({ channel, server, onSendMessage }: {
       {/* Поле ввода */}
       <form onSubmit={handleSubmit} className="px-4 pb-6 pt-2">
         <div className="bg-[#383a40] rounded-lg flex items-center px-4">
-          <button type="button" className="text-[#b5bac1] hover:text-[#dbdee1] mr-3">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
           <input
-            ref={inputRef}
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={`Написать в #${channel.name}`}
             className="flex-1 bg-transparent py-3 text-[#dbdee1] placeholder-[#6d6f78] outline-none text-[15px]"
           />
-          <div className="flex items-center gap-3 text-[#b5bac1]">
-            <button type="button" className="hover:text-[#dbdee1]">
+          {message.trim() && (
+            <button type="submit" className="text-[#5865f2] hover:text-[#4752c4] ml-2">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
-            {message.trim() && (
-              <button type="submit" className="hover:text-[#5865f2] text-[#5865f2]">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </form>
     </div>
@@ -532,9 +507,6 @@ function MembersSidebar({ members }: { members: Member[] }) {
             <span className="ml-1.5 px-1 py-0 text-[10px] text-[#949ba4]">ты</span>
           )}
         </div>
-        {member.activity && member.status !== 'offline' && (
-          <span className="text-[11px] text-[#949ba4] truncate">{member.activity}</span>
-        )}
       </div>
     </div>
   );
@@ -578,7 +550,7 @@ function CreateServerModal({ onClose, onCreate }: { onClose: () => void; onCreat
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-[#313338] rounded-lg w-[440px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#313338] rounded-lg w-[440px]" onClick={e => e.stopPropagation()}>
         <div className="p-6">
           <h2 className="text-[22px] font-bold text-white text-center mb-2">Создай свой сервер</h2>
           <p className="text-[#b5bac1] text-center text-sm mb-6">
@@ -648,11 +620,7 @@ function CreateServerModal({ onClose, onCreate }: { onClose: () => void; onCreat
 export default function App() {
   const [servers, setServers] = useState<Server[]>(initialServers);
   const [activeServerId, setActiveServerId] = useState<string | null>('server-1');
-  const [activeChannelIds, setActiveChannelIds] = useState<Record<string, string>>({
-    'server-1': 'ch-1',
-    'server-2': 'ch-7',
-    'server-3': 'ch-10',
-  });
+  const [activeChannelIds, setActiveChannelIds] = useState<Record<string, string>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const activeServer = servers.find(s => s.id === activeServerId) || null;
@@ -669,7 +637,7 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = useCallback((content: string) => {
+  const handleSendMessage = (content: string) => {
     if (!activeServerId || !activeChannelId) return;
 
     const newMessage: Message = {
@@ -694,7 +662,28 @@ export default function App() {
         }),
       };
     }));
-  }, [activeServerId, activeChannelId]);
+  };
+
+  const handleCreateChannel = (name: string, type: 'text' | 'voice') => {
+    if (!activeServerId) return;
+
+    const newChannel: Channel = {
+      id: 'ch-' + generateId(),
+      name,
+      type,
+      messages: [],
+    };
+
+    setServers(prev => prev.map(server => {
+      if (server.id !== activeServerId) return server;
+      return {
+        ...server,
+        channels: [...server.channels, newChannel],
+      };
+    }));
+
+    setActiveChannelIds(prev => ({ ...prev, [activeServerId]: newChannel.id }));
+  };
 
   const handleCreateServer = (name: string, icon: string) => {
     const colors = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f47b67', '#e78284'];
@@ -704,34 +693,11 @@ export default function App() {
       name,
       icon,
       color: colors[Math.floor(Math.random() * colors.length)],
-      channels: [
-        {
-          id: 'ch-' + generateId(),
-          name: 'общий',
-          type: 'text',
-          messages: [
-            {
-              id: 'm-' + generateId(),
-              content: `Сервер "${name}" создан! Добавляй друзей и общайся! 🎉`,
-              author: 'Система',
-              avatar: '⚙️',
-              timestamp: new Date(),
-              color: '#5865f2',
-            },
-          ],
-        },
-        {
-          id: 'ch-' + generateId(),
-          name: 'Голосовой',
-          type: 'voice',
-          messages: [],
-        },
-      ],
-      members: [currentUser, ...friends.slice(0, 3)],
+      channels: [],
+      members: [currentUser, ...friends],
     };
 
     setServers(prev => [...prev, newServer]);
-    setActiveChannelIds(prev => ({ ...prev, [serverId]: newServer.channels[0].id }));
     setActiveServerId(serverId);
     setShowCreateModal(false);
   };
@@ -752,6 +718,7 @@ export default function App() {
           server={activeServer}
           activeChannelId={activeChannelId || ''}
           onChannelClick={handleChannelClick}
+          onCreateChannel={handleCreateChannel}
         />
       )}
 
@@ -767,7 +734,7 @@ export default function App() {
           <div className="text-center">
             <div className="text-6xl mb-4">🔥</div>
             <h2 className="text-2xl font-bold text-white mb-2">LIpoMett</h2>
-            <p className="text-[#949ba4]">Выбери сервер и канал, чтобы начать общение с друзьями</p>
+            <p className="text-[#949ba4]">Создай канал и начни общаться с друзьями!</p>
           </div>
         </div>
       )}
